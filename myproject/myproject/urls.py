@@ -1,3 +1,5 @@
+from django.contrib import admin
+from django.urls import path, include
 """
 URL configuration for myproject project.
 
@@ -19,4 +21,7 @@ from django.urls import path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('pages/', include('django.contrib.flatpages.urls')),
+    path('about', include('django.contrib.flatpages.urls')),
+    path('news/', include('NewsPortal.urls')),
 ]
