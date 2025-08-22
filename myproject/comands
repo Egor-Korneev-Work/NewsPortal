@@ -2,6 +2,8 @@ from django.contrib.auth.models import User
 from NewsPortal.models import *
 user1 = User.objects.create_user('Иван')
 user2 = User.objects.create_user('Петр')
+user3 = User.objects.create_user('Саша')
+user4 = User.objects.create_user('Ваня')
 author1 = Author.objects.create(user=user1)
 author2 = Author.objects.create(user=user2)
 category1 = Category.objects.create(name='Спорт')
