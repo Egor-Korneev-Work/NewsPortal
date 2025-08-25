@@ -7,6 +7,8 @@ from django.shortcuts import render
 from .filters import PostFilter
 from .forms import PostForm
 from django.urls import reverse_lazy
+from django.contrib.auth.mixins import PermissionRequiredMixin
+
 
 class PostsList(ListView):
     # Указываем модель, объекты которой мы будем выводить
@@ -53,7 +55,8 @@ class PostDetail(DetailView):
     context_object_name = 'posts'
 
 
-class PostCreate(CreateView):
+class PostCreate(PermissionRequiredMixin, CreateView):
+    permission_required = ('NewsPortal.add_Post',)
     form_class = PostForm
     model = Post
     template_name = 'post_edit.html'
@@ -68,10 +71,13 @@ class PostCreate(CreateView):
         post.save()
         return super().form_valid(form)
 
-class PostUpdate(UpdateView,):
+
+class PostUpdate(PermissionRequiredMixin, UpdateView,):
+    permission_required = ('NewsPortal.change_Post',)
     form_class = PostForm
     model = Post
     template_name = 'post_edit.html'
+
 
 class PostDelete(DeleteView):
     model = Post
