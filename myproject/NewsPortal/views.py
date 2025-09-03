@@ -1,13 +1,14 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.context_processors import request
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView, CreateView
-from .models import Post
+from .models import Post, PostCategory
 from datetime import datetime
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from .filters import PostFilter
-from .forms import PostForm
+from .forms import PostForm, SubscriptionForm
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from .tasks import send_notifications
 
 
 class PostsList(ListView):
@@ -69,8 +70,8 @@ class PostCreate(PermissionRequiredMixin, CreateView):
         elif self.request.path == '/articles/create/':
             post.post_type = 'article'
         post.save()
+        send_notifications.delay(post.id)
         return super().form_valid(form)
-
 
 class PostUpdate(PermissionRequiredMixin, UpdateView,):
     permission_required = ('NewsPortal.change_Post',)
@@ -84,5 +85,16 @@ class PostDelete(DeleteView):
     template_name = 'post_delete.html'
     success_url = reverse_lazy('post_list')
 
+def subscribe(request):
+    if request.method == 'POST':
+        form = SubscriptionForm(request.POST)
+        if form.is_valid():
+            category = form.cleaned_data['category']
+            subscription = PostCategory(user=request.user, category=category)
+            subscription.save()
+            return redirect('category_detail', category_id=category.id)
+    else:
+        form = SubscriptionForm()
+    return render(request, 'subscribe.html', {'form': form})
 
 
