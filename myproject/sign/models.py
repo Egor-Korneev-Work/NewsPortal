@@ -1,11 +1,8 @@
-from django.db import models
-
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
-from allauth.account.forms import SignupForm
 from django.contrib.auth.models import Group
-
+from allauth.account.forms import SignupForm
 
 class BaseRegisterForm(UserCreationForm):
     email = forms.EmailField(label = "Email")
@@ -22,7 +19,8 @@ class BaseRegisterForm(UserCreationForm):
                   "password2", )
 
     def save(self, *args, **kwargs):
-        user=super(BaseRegisterForm,self).save(*args,**kwargs)
-        common_group=Group.objects.get(name='common')
+        user = super(BaseRegisterForm, self).save(*args, **kwargs)
+        common_group = Group.objects.get(name='common')
         common_group.user_set.add(user)
         return user
+
