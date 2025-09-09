@@ -1,14 +1,17 @@
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.context_processors import request
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView, CreateView
-from .models import Post, PostCategory
+from unicodedata import category
+
+from .models import Post, PostCategory, Category
 from datetime import datetime
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .filters import PostFilter
 from .forms import PostForm, SubscriptionForm
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from .tasks import send_notifications
+
 
 
 class PostsList(ListView):
@@ -70,7 +73,6 @@ class PostCreate(PermissionRequiredMixin, CreateView):
         elif self.request.path == '/articles/create/':
             post.post_type = 'article'
         post.save()
-        send_notifications.delay(post.id)
         return super().form_valid(form)
 
 class PostUpdate(PermissionRequiredMixin, UpdateView,):
@@ -85,16 +87,39 @@ class PostDelete(DeleteView):
     template_name = 'post_delete.html'
     success_url = reverse_lazy('post_list')
 
-def subscribe(request):
-    if request.method == 'POST':
-        form = SubscriptionForm(request.POST)
-        if form.is_valid():
-            category = form.cleaned_data['category']
-            subscription = PostCategory(user=request.user, category=category)
-            subscription.save()
-            return redirect('category_detail', category_id=category.id)
-    else:
-        form = SubscriptionForm()
-    return render(request, 'subscribe.html', {'form': form})
 
+class CatogoryListView(ListView):
+    model = Post
+    template_name = 'category_list.html'
+    context_object_name = 'category_news_list'
+
+    def get_queryset(self):
+        self.category = get_object_or_404(Category, id=self.kwargs['pk'])
+        queryset = Post.objects.filter(categories= self.category).order_by('-created_at')
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['category'] = self.category
+        return context
+
+@login_required
+def subscribe(request, pk):
+    user = request.user
+    category = Category.objects.get(id= pk)
+    category.subscribers.add(user)
+
+    message = 'Вы успешно подписались на рассылку новостей категории'
+    return redirect('category_list', pk=pk)
+
+@login_required
+def unsubscribe(request, pk):
+    user = request.user
+    category = get_object_or_404(Category, id=pk)  # безопаснее, чем .get()
+    category.subscribers.remove(user)  # отписываем пользователя
+
+    # Можно добавить сообщение (если используешь messages framework)
+    from django.contrib import messages
+    messages.success(request, f'Вы успешно отписались от категории "{category.name}"')
+    return redirect('category_list', pk=pk)  # ← только если URL ожидает pk
 

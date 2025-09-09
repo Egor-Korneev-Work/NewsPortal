@@ -10,7 +10,7 @@ from django.core.mail import send_mail
 from django.shortcuts import render, reverse, redirect
 from django.views.decorators.csrf import csrf_protect
 from django.urls import reverse_lazy
-from .models import BaseRegisterForm
+from .models import BasicSignupForm
 
 
 class Account(LoginRequiredMixin, TemplateView):
@@ -22,7 +22,7 @@ class Account(LoginRequiredMixin, TemplateView):
 
 class BaseRegisterView(CreateView):
     model = User
-    form_class = BaseRegisterForm
+    form_class = BasicSignupForm
     success_url = '/'
 
     def form_valid(self, form):

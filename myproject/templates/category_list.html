@@ -1,0 +1,68 @@
+<!-- templates/category_list.html -->
+{% extends 'flatpages/default.html' %} <!-- Замени на свой базовый шаблон -->
+
+{% block title %}
+    Новости категории "{{ category.name }}"
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+    <div class="mt-3">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+    <h1>Категория: {{ category.name }}</h1>
+
+    {% if user.is_authenticated %}
+        <div class="mb-3">
+            {% if user in category.subscribers.all %}
+                <a href="{% url 'unsubscribe' category.id %}" class="btn btn-danger">
+                    ❌ Отписаться от рассылки
+                </a>
+                <p class="text-muted">Вы подписаны на обновления этой категории.</p>
+            {% else %}
+                <a href="{% url 'subscribe' category.id %}" class="btn btn-success">
+                    ✅ Подписаться на рассылку
+                </a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <a href="{% url 'login' %}?next={{ request.path }}">Войдите</a>, чтобы подписаться на эту категорию.
+        </div>
+    {% endif %}
+
+    <hr>
+
+    {% if category_news_list %}
+        <div class="row">
+            {% for post in category_news_list %}
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{% url 'post_detail' post.id %}">{{ post.title }}</a>
+                            </h5>
+                            <p class="card-text text-muted">
+                                {{ post.created_at|date:"d.m.Y H:i" }}
+                            </p>
+                            <p class="card-text">{{ post.text|truncatewords:30 }}</p>
+                            <a href="{% url 'post_detail' post.id %}" class="btn btn-outline-primary btn-sm">
+                                Читать далее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center">В этой категории пока нет новостей.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth.models import Group
 from allauth.account.forms import SignupForm
 
-class BaseRegisterForm(UserCreationForm):
+class BasicSignupForm(SignupForm):
     email = forms.EmailField(label = "Email")
     first_name = forms.CharField(label = "Имя")
     last_name = forms.CharField(label = "Фамилия")
@@ -19,8 +19,7 @@ class BaseRegisterForm(UserCreationForm):
                   "password2", )
 
     def save(self, *args, **kwargs):
-        user = super(BaseRegisterForm, self).save(*args, **kwargs)
+        user = super(BasicSignupForm, self).save(*args, **kwargs)
         common_group = Group.objects.get(name='common')
         common_group.user_set.add(user)
         return user
-

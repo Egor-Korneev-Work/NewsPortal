@@ -1,10 +1,9 @@
+<!-- templates/subscribe.html -->
 {% extends 'flatpages/default.html' %}
 
 {% block content %}
-    <h1>Подписка на категорию</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Подписаться</button>
-    </form>
+<div class="container mt-5 text-center">
+    <h2>{{ message }} "{{ category.name }}"</h2>
+    <a href="{% url 'category_list' category.id %}" class="btn btn-primary mt-3">Вернуться к категории</a>
+</div>
 {% endblock %}
