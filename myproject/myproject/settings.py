@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+from django.utils.log import RequireDebugTrue, RequireDebugFalse
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -170,9 +171,180 @@ EMAIL_PORT = 465  # порт smtp сервера тоже одинаковый
 EMAIL_HOST_USER = 'Egor-Fivegor'  # ваше имя пользователя, например, если ваша почта user@yandex.ru, то сюда надо писать user, иными словами, это всё то что идёт до собаки
 EMAIL_HOST_PASSWORD = 'qdvnimqoacdengru'  # пароль от почты
 EMAIL_USE_SSL = True# Яндекс использует ssl, подробнее о том, что это, почитайте в дополнительных источниках, но включать его здесь обязательно
+ADMINS = [('Admin', 'Egor-Fivegor@yandex.ru')]  # Кому отправлять ошибки
 
 CELERY_BROKER_URL = 'redis://localhost:6379'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': os.path.join(BASE_DIR, 'cache_files'), # Указываем, куда будем сохранять кэшируемые файлы! Не забываем создать папку cache_files внутри папки с manage.py!
+    }
+}
+
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    # === ФОРМАТТЕРЫ ===
+    'formatters': {
+        'console_verbose': {
+            'format': '{asctime} [{levelname}] {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'console_detailed': {
+            'format': '{asctime} [{levelname}] {message} | {pathname}:{lineno}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'console_exception': {
+            'format': '{asctime} [{levelname}] {message} | {pathname}:{lineno}\n{exc_info}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'general': {
+            'format': '{asctime} [{levelname}] {module} - {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'errors': {
+            'format': '{asctime} [{levelname}] {message} | {pathname}:{lineno}\n{exc_info}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'security': {
+            'format': '{asctime} [{levelname}] {module} - {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'email_error': {
+            'format': '{asctime} [{levelname}] {message} | {pathname}:{lineno}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+
+    # === ФИЛЬТРЫ ===
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+
+    # === ОБРАБОТЧИКИ ===
+    'handlers': {
+        # Консоль: DEBUG+ (только при DEBUG=True)
+        'console_debug': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'console_verbose',
+            'filters': ['require_debug_true'],
+        },
+        'console_warning': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'console_detailed',
+            'filters': ['require_debug_true'],
+        },
+        'console_error': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'formatter': 'console_exception',
+            'filters': ['require_debug_true'],
+        },
+
+        # general.log: INFO+ (только при DEBUG=False)
+        'general_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'general.log'),
+            'formatter': 'general',
+            'encoding': 'utf-8',
+            'filters': ['require_debug_false'],
+        },
+
+        # errors.log: ERROR+ из указанных логгеров (всегда)
+        'errors_file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'errors.log'),
+            'formatter': 'errors',
+            'encoding': 'utf-8',
+        },
+
+        # security.log: только из django.security
+        'security_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'security.log'),
+            'formatter': 'security',
+            'encoding': 'utf-8',
+        },
+
+        # Email: ERROR+ из django.request и django.server (только при DEBUG=False)
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'formatter': 'email_error',
+            'filters': ['require_debug_false'],
+        },
+    },
+
+    # === ЛОГГЕРЫ ===
+    'loggers': {
+        # Основной логгер Django — выводит в консоль при DEBUG=True
+        'django': {
+            'handlers': ['console_debug', 'console_warning', 'console_error'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+
+        # Для general.log — мы НЕ используем 'django' напрямую, а настраиваем отдельно
+        # Все логи из django.request, server и т.д. будут идти в general.log только при DEBUG=False
+        # Поэтому перенаправляем только нужные логгеры
+        'django.request': {
+            'handlers': ['errors_file', 'mail_admins'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['errors_file', 'mail_admins'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.template': {
+            'handlers': ['errors_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['errors_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['security_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Теперь — все остальные логи Django (включая root) — пишутся в general.log при DEBUG=False
+        # Но только если они не обработаны выше!
+        'django': {
+            'handlers': ['general_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
